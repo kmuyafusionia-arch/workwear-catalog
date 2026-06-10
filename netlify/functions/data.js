@@ -1,6 +1,5 @@
-const netlifyBlobs = require("@netlify/blobs");
-// バージョンによっては createClient が名前付きエクスポートになっているため、以下のように取得します
-const createClient = netlifyBlobs.createClient || netlifyBlobs.default.createClient;
+// Netlify Blobsの環境で最も安定して動作する形式
+const { getDeployStore } = require("@netlify/blobs");
 
 const ADMIN_ID = "fusionia";
 const ADMIN_PW = "zZ8$ePmy#ZYO";
@@ -17,7 +16,8 @@ exports.handler = async (event) => {
   if (event.httpMethod === "OPTIONS") return { statusCode: 204, headers, body: "" };
 
   try {
-    const store = createClient({ name: "workwear" });
+    // サイトのストアを取得（名前を指定しなくても自動的に紐付く）
+    const store = getDeployStore();
 
     // GET: データ取得
     if (event.httpMethod === "GET") {
@@ -38,7 +38,7 @@ exports.handler = async (event) => {
       return { statusCode: 200, headers, body: JSON.stringify({ ok: true }) };
     }
   } catch (e) {
-    console.error("Error:", e);
+    console.error("Critical Error:", e);
     return { statusCode: 500, headers, body: JSON.stringify({ error: e.message }) };
   }
 
