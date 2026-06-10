@@ -1,5 +1,6 @@
-const blobs = require("@netlify/blobs");
-const { createClient } = blobs;
+const netlifyBlobs = require("@netlify/blobs");
+// バージョンによっては createClient が名前付きエクスポートになっているため、以下のように取得します
+const createClient = netlifyBlobs.createClient || netlifyBlobs.default.createClient;
 
 const ADMIN_ID = "fusionia";
 const ADMIN_PW = "zZ8$ePmy#ZYO";
@@ -15,34 +16,30 @@ exports.handler = async (event) => {
 
   if (event.httpMethod === "OPTIONS") return { statusCode: 204, headers, body: "" };
 
-  const store = createClient({ name: "workwear" });
+  try {
+    const store = createClient({ name: "workwear" });
 
-  if (event.httpMethod === "GET") {
-    try {
+    // GET: データ取得
+    if (event.httpMethod === "GET") {
       const raw = await store.get(BLOB_KEY);
       return { statusCode: 200, headers, body: raw || "{}" };
-    } catch (e) {
-      return { statusCode: 200, headers, body: "{}" };
-    }
-  }
-
-  if (event.httpMethod === "POST") {
-    const auth = event.headers["authorization"] || "";
-    const encoded = Buffer.from(`${ADMIN_ID}:${ADMIN_PW}`).toString("base64");
-    
-    if (auth !== `Basic ${encoded}`) {
-      return { statusCode: 401, headers, body: JSON.stringify({ error: "Unauthorized" }) };
     }
 
-    try {
-      // データをパースせず、そのまま文字列として保存（容量制限対策）
+    // POST: データ保存
+    if (event.httpMethod === "POST") {
+      const auth = event.headers["authorization"] || "";
+      const encoded = Buffer.from(`${ADMIN_ID}:${ADMIN_PW}`).toString("base64");
+      
+      if (auth !== `Basic ${encoded}`) {
+        return { statusCode: 401, headers, body: JSON.stringify({ error: "Unauthorized" }) };
+      }
+
       await store.set(BLOB_KEY, event.body);
       return { statusCode: 200, headers, body: JSON.stringify({ ok: true }) };
-    } catch (e) {
-      // エラーの詳細をログに出す
-      console.error("Blobs SET Error:", e);
-      return { statusCode: 500, headers, body: JSON.stringify({ error: "Failed to store data" }) };
     }
+  } catch (e) {
+    console.error("Error:", e);
+    return { statusCode: 500, headers, body: JSON.stringify({ error: e.message }) };
   }
 
   return { statusCode: 405, headers, body: JSON.stringify({ error: "Method not allowed" }) };
