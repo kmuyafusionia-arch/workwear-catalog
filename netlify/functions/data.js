@@ -1,12 +1,10 @@
 // netlify/functions/data.js
-// GET  /api/data        → 全データ取得
-// POST /api/data        → 全データ上書き保存（管理者認証必須）
 
 const { createClient } = require("@netlify/blobs");
 
 const ADMIN_ID = "fusionia";
 const ADMIN_PW = "zZ8$ePmy#ZYO";
-const BLOB_KEY  = "catalog";
+const BLOB_KEY = "catalog";
 
 // ===== 初期データ =====
 const INITIAL = {
@@ -70,31 +68,38 @@ exports.handler = async (event) => {
     return { statusCode: 204, headers, body: "" };
   }
 
-  // Netlify Blobs クライアント
-  const store = createClient({ name: "workwear" });
+  // Netlify Blobs クライアントの初期化
+  let store;
+  try {
+    store = createClient({ name: "workwear" });
+  } catch (e) {
+    console.error("Blobs Client Error:", e);
+  }
 
   // -------- GET: データ取得（認証不要） --------
   if (event.httpMethod === "GET") {
     try {
-      const raw = await store.get(BLOB_KEY);
-      if (raw) {
-        return { statusCode: 200, headers, body: raw };
+      if (store) {
+        const raw = await store.get(BLOB_KEY);
+        if (raw) return { statusCode: 200, headers, body: raw };
       }
-      // 初回: 初期データを返す
       return { statusCode: 200, headers, body: JSON.stringify(INITIAL) };
     } catch (e) {
-      // Blobs 未設定環境でも動くよう初期データを返す
       return { statusCode: 200, headers, body: JSON.stringify(INITIAL) };
     }
   }
 
   // -------- POST: データ保存（認証必須） --------
   if (event.httpMethod === "POST") {
-    // Basic 認証チェック
     const auth = event.headers["authorization"] || "";
     const encoded = Buffer.from(`${ADMIN_ID}:${ADMIN_PW}`).toString("base64");
+    
     if (auth !== `Basic ${encoded}`) {
       return { statusCode: 401, headers, body: JSON.stringify({ error: "Unauthorized" }) };
+    }
+
+    if (!store) {
+      return { statusCode: 500, headers, body: JSON.stringify({ error: "Storage not initialized" }) };
     }
 
     let body;
