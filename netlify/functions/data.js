@@ -1,4 +1,6 @@
-const { createClient } = require("@netlify/blobs");
+// 新しい読み込み方（これで解決するはず！）
+const blobs = require("@netlify/blobs");
+const createClient = blobs.createClient;
 
 const ADMIN_ID = "fusionia";
 const ADMIN_PW = "zZ8$ePmy#ZYO";
@@ -14,7 +16,7 @@ exports.handler = async (event) => {
 
   if (event.httpMethod === "OPTIONS") return { statusCode: 204, headers, body: "" };
 
-  // Blobsクライアントの作成（名前を固定）
+  // Blobsクライアントの初期化
   const store = createClient({ name: "workwear" });
 
   if (event.httpMethod === "GET") {
@@ -35,7 +37,7 @@ exports.handler = async (event) => {
     }
 
     try {
-      // 受信データを直接保存
+      // データの保存
       await store.set(BLOB_KEY, event.body);
       return { statusCode: 200, headers, body: JSON.stringify({ ok: true }) };
     } catch (e) {
