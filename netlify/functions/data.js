@@ -1,6 +1,5 @@
-// 新しい読み込み方（これで解決するはず！）
 const blobs = require("@netlify/blobs");
-const createClient = blobs.createClient;
+const { createClient } = blobs;
 
 const ADMIN_ID = "fusionia";
 const ADMIN_PW = "zZ8$ePmy#ZYO";
@@ -16,7 +15,6 @@ exports.handler = async (event) => {
 
   if (event.httpMethod === "OPTIONS") return { statusCode: 204, headers, body: "" };
 
-  // Blobsクライアントの初期化
   const store = createClient({ name: "workwear" });
 
   if (event.httpMethod === "GET") {
@@ -37,11 +35,13 @@ exports.handler = async (event) => {
     }
 
     try {
-      // データの保存
+      // データをパースせず、そのまま文字列として保存（容量制限対策）
       await store.set(BLOB_KEY, event.body);
       return { statusCode: 200, headers, body: JSON.stringify({ ok: true }) };
     } catch (e) {
-      return { statusCode: 500, headers, body: JSON.stringify({ error: e.toString() }) };
+      // エラーの詳細をログに出す
+      console.error("Blobs SET Error:", e);
+      return { statusCode: 500, headers, body: JSON.stringify({ error: "Failed to store data" }) };
     }
   }
 
