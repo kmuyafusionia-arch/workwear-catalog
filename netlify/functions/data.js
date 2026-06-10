@@ -4,9 +4,6 @@ const ADMIN_ID = "fusionia";
 const ADMIN_PW = "zZ8$ePmy#ZYO";
 const BLOB_KEY = "catalog";
 
-// (初期データ INITIAL はそのまま使ってください)
-// ... (中略) ...
-
 exports.handler = async (event) => {
   const headers = {
     "Content-Type": "application/json",
@@ -17,14 +14,15 @@ exports.handler = async (event) => {
 
   if (event.httpMethod === "OPTIONS") return { statusCode: 204, headers, body: "" };
 
+  // Blobsクライアントの作成（名前を固定）
   const store = createClient({ name: "workwear" });
 
   if (event.httpMethod === "GET") {
     try {
       const raw = await store.get(BLOB_KEY);
-      return { statusCode: 200, headers, body: raw || JSON.stringify(INITIAL) };
+      return { statusCode: 200, headers, body: raw || "{}" };
     } catch (e) {
-      return { statusCode: 200, headers, body: JSON.stringify(INITIAL) };
+      return { statusCode: 200, headers, body: "{}" };
     }
   }
 
@@ -37,16 +35,11 @@ exports.handler = async (event) => {
     }
 
     try {
-      // 受信データを解析
-      const body = JSON.parse(event.body);
-      
-      // 保存処理
-      await store.set(BLOB_KEY, JSON.stringify(body));
-      
+      // 受信データを直接保存
+      await store.set(BLOB_KEY, event.body);
       return { statusCode: 200, headers, body: JSON.stringify({ ok: true }) };
     } catch (e) {
-      console.error("POST Error Details:", e); // ← Netlifyのログに詳細が出るはず！
-      return { statusCode: 500, headers, body: JSON.stringify({ error: e.message }) };
+      return { statusCode: 500, headers, body: JSON.stringify({ error: e.toString() }) };
     }
   }
 
